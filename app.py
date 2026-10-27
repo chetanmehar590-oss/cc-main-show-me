@@ -26,7 +26,7 @@ logging.getLogger('TeleBot').setLevel(logging.ERROR)
 # ==========================================
 # CONFIG
 # ==========================================
-BOT_TOKEN = '8938853905:AAHkq4Lu4HB4g7LdQmttH0GexwHIw2xgsss'
+BOT_TOKEN = '8938853905:AAGkguWAZUNbXkR9A6udzzW051tJBFEcOvo'
 OWNER_ID = 8366177400
 FORCE_JOIN_CHANNEL = "@CvexChk"
 FORCE_JOIN_LINK = "https://t.me/CvexChk"
