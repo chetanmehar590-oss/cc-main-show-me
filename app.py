@@ -1288,36 +1288,34 @@ def cmd_start(message):
         elif args[1].startswith("plan_"):
             plan_code = args[1].replace("plan_", "")
 
-    if not is_joined(uid):
-                mk = types.InlineKeyboardMarkup()
+        if not is_joined(uid):
+            mk = types.InlineKeyboardMarkup()
 
-        mk.add(types.InlineKeyboardButton(
-            "📢 Join Channel",
-            url="https://t.me/PremiumKillerA"
-        ))
+            mk.add(types.InlineKeyboardButton(
+                "📢 Join Channel",
+                url="https://t.me/PremiumKillerA"
+            ))
+            mk.add(types.InlineKeyboardButton(
+                "👥 Join Group",
+                url="https://t.me/PremiumKillerB"
+            ))
+            mk.add(types.InlineKeyboardButton(
+                "✅ Verify",
+                callback_data="verify_join"
+            ))
 
-        mk.add(types.InlineKeyboardButton(
-            "👥 Join Group",
-            url="https://t.me/PremiumKillerB"
-        ))
-
-        mk.add(types.InlineKeyboardButton(
-            "✅ Verify",
-            callback_data="verify_join"
-        ))
-
-        return safe_reply(
-            message,
-            "<b>👑 PREMIUM KILLER</b>\n\n"
-            "💎 Premium Experience | 🔥 Exclusive Features\n"
-            "⚡ Fast & Smooth Service\n\n"
-            "🤖 Bot: @PremiumKiller_bot\n"
-            "📢 Channel: @PremiumKillerA\n"
-            "👥 Group: @PremiumKillerB\n\n"
-            "👑 Rule the Premium World!",
-            parse_mode='HTML',
-            reply_markup=mk
-        )
+            return safe_reply(
+                message,
+                "<b>👑 PREMIUM KILLER</b>\n\n"
+                "💎 Premium Experience | 🔥 Exclusive Features\n"
+                "⚡ Fast & Smooth Service\n\n"
+                "🤖 Bot: @PremiumKiller_bot\n"
+                "📢 Channel: @PremiumKillerA\n"
+                "👥 Group: @PremiumKillerB\n\n"
+                "👑 Rule the Premium World!",
+                parse_mode='HTML',
+                reply_markup=mk
+            )
     user = get_user(uid)
     if not user:
         create_user(uid, uname, ref_by); user = get_user(uid)
