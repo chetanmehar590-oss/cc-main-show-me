@@ -1361,6 +1361,27 @@ def cmd_cmds(message):
     uid = message.from_user.id
     if is_banned(uid): return
     ensure_user(uid, message.from_user.username or "")
+    if not is_joined(uid):
+        mk = types.InlineKeyboardMarkup()
+
+        mk.add(types.InlineKeyboardButton(
+            "📢 Join Channel",
+            url="https://t.me/PremiumKillerA"
+        ))
+        mk.add(types.InlineKeyboardButton(
+            "👥 Join Group",
+            url="https://t.me/PremiumKillerB"
+        ))
+        mk.add(types.InlineKeyboardButton(
+            "✅ Verify",
+            callback_data="verify_join"
+        ))
+
+        return safe_reply(
+            message,
+            "⚠️ Please join Channel and Group first!",
+            reply_markup=mk
+        )
     safe_send(message.chat.id, f"<b>{E_STAR} Main Menu</b>\n{E_ARROW} Select option:", parse_mode='HTML', reply_markup=get_main_markup(uid))
 
 # ==========================================
