@@ -1288,10 +1288,10 @@ def cmd_start(message):
         elif args[1].startswith("plan_"):
             plan_code = args[1].replace("plan_", "")
 
-        joined = is_joined(uid)
-print("FORCE JOIN RESULT:", joined)
+     joined = is_joined(uid)
+     print("FORCE JOIN RESULT:", joined)
 
-    if not joined:
+     if not joined:
             mk = types.InlineKeyboardMarkup()
 
             mk.add(types.InlineKeyboardButton(
