@@ -30,6 +30,8 @@ BOT_TOKEN = '9185171475:AAFTpItF3-AvX9bmXTUb74M2N6MSnIlNjBE'
 OWNER_ID = 6965488457
 FORCE_JOIN_CHANNEL = "@PremiumKillerA"
 FORCE_JOIN_LINK = "https://t.me/PremiumKillerA"
+FORCE_JOIN_GROUP = "@PremiumKillerB"
+FORCE_JOIN_GROUP_LINK = "https://t.me/PremiumKillerB"
 BUY_LINK = "t.me/Hidden_Xman"
 
 REQ_TIMEOUT = 12
@@ -1288,10 +1290,7 @@ def cmd_start(message):
         elif args[1].startswith("plan_"):
             plan_code = args[1].replace("plan_", "")
 
-     joined = is_joined(uid)
-     print("FORCE JOIN RESULT:", joined)
-
-     if not joined:
+    if not is_joined(uid):
             mk = types.InlineKeyboardMarkup()
 
             mk.add(types.InlineKeyboardButton(
