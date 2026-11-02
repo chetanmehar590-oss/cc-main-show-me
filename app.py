@@ -28,9 +28,9 @@ logging.getLogger('TeleBot').setLevel(logging.ERROR)
 # ==========================================
 BOT_TOKEN = '9185171475:AAFTpItF3-AvX9bmXTUb74M2N6MSnIlNjBE'
 OWNER_ID = 6965488457
-FORCE_JOIN_CHANNEL = "@CvexChk"
-FORCE_JOIN_LINK = "https://t.me/CvexChk"
-BUY_LINK = "https://t.me/diwazz"
+FORCE_JOIN_CHANNEL = "@PremiumKillerA"
+FORCE_JOIN_LINK = "https://t.me/PremiumKillerA"
+BUY_LINK = "t.me/Hidden_Xman"
 
 REQ_TIMEOUT = 12
 PROXY_CHECK_TIMEOUT = 5
