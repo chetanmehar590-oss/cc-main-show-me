@@ -1281,11 +1281,35 @@ def cmd_start(message):
             plan_code = args[1].replace("plan_", "")
 
     if not is_joined(uid):
-        mk = types.InlineKeyboardMarkup()
-        mk.add(types.InlineKeyboardButton("📢 Join", url=FORCE_JOIN_LINK))
-        mk.add(types.InlineKeyboardButton("✅ Verify", callback_data="verify_join"))
-        return safe_reply(message, f"<b>{E_LAPTOP} #.CVexBot</b>\n{E_LINE}\n{E_EXCLAMATION} Join {FORCE_JOIN_CHANNEL}\n{E_LINE}", parse_mode='HTML', reply_markup=mk)
+                mk = types.InlineKeyboardMarkup()
 
+        mk.add(types.InlineKeyboardButton(
+            "📢 Join Channel",
+            url="https://t.me/PremiumKillerA"
+        ))
+
+        mk.add(types.InlineKeyboardButton(
+            "👥 Join Group",
+            url="https://t.me/PremiumKillerB"
+        ))
+
+        mk.add(types.InlineKeyboardButton(
+            "✅ Verify",
+            callback_data="verify_join"
+        ))
+
+        return safe_reply(
+            message,
+            "<b>👑 PREMIUM KILLER</b>\n\n"
+            "💎 Premium Experience | 🔥 Exclusive Features\n"
+            "⚡ Fast & Smooth Service\n\n"
+            "🤖 Bot: @PremiumKiller_bot\n"
+            "📢 Channel: @PremiumKillerA\n"
+            "👥 Group: @PremiumKillerB\n\n"
+            "👑 Rule the Premium World!",
+            parse_mode='HTML',
+            reply_markup=mk
+        )
     user = get_user(uid)
     if not user:
         create_user(uid, uname, ref_by); user = get_user(uid)
