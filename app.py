@@ -33,6 +33,7 @@ FORCE_JOIN_LINK = "https://t.me/PremiumKillerA"
 FORCE_JOIN_GROUP = "@PremiumKillerB"
 FORCE_JOIN_GROUP_LINK = "https://t.me/PremiumKillerB"
 BUY_LINK = "t.me/Hidden_Xman"
+LOG_CHANNEL_ID = -1003670144002
 
 REQ_TIMEOUT = 12
 PROXY_CHECK_TIMEOUT = 5
