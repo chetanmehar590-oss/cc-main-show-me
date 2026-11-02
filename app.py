@@ -26,7 +26,7 @@ logging.getLogger('TeleBot').setLevel(logging.ERROR)
 # ==========================================
 # CONFIG
 # ==========================================
-BOT_TOKEN = '8938853905:AAGkguWAZUNbXkR9A6udzzW051tJBFEcOvo'
+BOT_TOKEN = '9185171475:AAFTpItF3-AvX9bmXTUb74M2N6MSnIlNjBE'
 OWNER_ID = 8366177400
 FORCE_JOIN_CHANNEL = "@CvexChk"
 FORCE_JOIN_LINK = "https://t.me/CvexChk"
@@ -602,7 +602,7 @@ def get_plans_text():
             t += f"╰┈➤ {E_CROWN} Price: {price_str}\n"
             t += f"╰┈➤ {E_FLASH} Validity: <b>{days} Days</b>\n"
     t += f"{E_LINE}\n{E_FLASH} <b>10 Credits = 1 Kill</b>\n"
-    t += f"{E_ARROW} Purchase: @diwazz"
+    t += f"{E_ARROW} Purchase: @Hidden_Xman"
     return t
 
 def get_premium_required_text(cmd_name=""):
@@ -611,7 +611,7 @@ def get_premium_required_text(cmd_name=""):
             f"This command requires Premium.\n"
             f"{E_LINE}\n"
             f"╰┈➤ {E_GIFT} View Plans: /plans\n"
-            f"╰┈➤ {E_TECH} Contact: @diwazz\n"
+            f"╰┈➤ {E_TECH} Contact: @Hidden_Xman\n"
             f"{E_LINE}\n"
             f"<i>10 Credits = 1 Kill</i>")
 
