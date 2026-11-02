@@ -1291,7 +1291,7 @@ def cmd_start(message):
         joined = is_joined(uid)
 print("FORCE JOIN RESULT:", joined)
 
-if not joined::
+    if not joined:
             mk = types.InlineKeyboardMarkup()
 
             mk.add(types.InlineKeyboardButton(
