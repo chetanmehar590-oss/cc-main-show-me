@@ -566,8 +566,16 @@ def is_banned(uid):
     u = get_user(uid); return bool(u and u[9] == 1)
 
 def is_joined(uid):
-    try: return bot.get_chat_member(FORCE_JOIN_CHANNEL, uid).status in ['creator','administrator','member']
-    except: return True
+    try:
+        channel = bot.get_chat_member("@PremiumKillerA", uid).status
+        group = bot.get_chat_member("@PremiumKillerB", uid).status
+
+        valid = ['creator', 'administrator', 'member']
+
+        return channel in valid and group in valid
+    except Exception as e:
+        print("Join check error:", e)
+        return False
 
 _rate = {}; _rate_lock = threading.Lock()
 def is_spam(uid, is_prem, is_adm):
