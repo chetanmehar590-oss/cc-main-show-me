@@ -27,7 +27,7 @@ logging.getLogger('TeleBot').setLevel(logging.ERROR)
 # ==========================================
 # CONFIG
 # ==========================================
-BOT_TOKEN = ''
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 OWNER_ID = 6965488457
 FORCE_JOIN_CHANNEL = "@PremiumKillerA"
 FORCE_JOIN_LINK = "https://t.me/PremiumKillerA"
