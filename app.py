@@ -1,6 +1,7 @@
 import telebot
 from telebot import types
-import sqlite3, requests, re, time, random, threading, json, secrets, urllib3, logging, sys
+import sqlite3, requests, re, time, random, threading, json, secrets, urllib3, logging, sys, os
+from pymongo import MongoClient
 from datetime import datetime, timedelta
 from urllib.parse import quote, unquote as url_unquote
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -249,6 +250,25 @@ def is_proxy_burned(p):
 # ==========================================
 # DB
 # ==========================================
+# MONGODB CONNECTION
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise RuntimeError("MONGO_URI is missing")
+
+mongo_client = MongoClient(MONGO_URI)
+db = mongo_client["PremiumKiller"]
+
+users_col = db["users"]
+plans_col = db["plans"]
+plan_codes_col = db["plan_codes"]
+licenses_col = db["licenses"]
+settings_col = db["settings"]
+gateways_col = db["gateways"]
+referrals_col = db["referrals"]
+withdrawals_col = db["withdrawals"]
+
+mongo_client.admin.command("ping")
+print("MongoDB Connected!")
 db_local = threading.local(); db_lock = threading.Lock()
 
 def get_db():
@@ -263,14 +283,39 @@ def get_db():
 _user_cache = {}; _user_cache_lock = threading.Lock()
 
 def get_user(uid):
+    uid = int(uid)
     now = time.time()
+
     with _user_cache_lock:
         if uid in _user_cache:
             d, ts = _user_cache[uid]
-            if now - ts < 5: return d
-    c = get_db().cursor(); c.execute("SELECT * FROM users WHERE id=?", (uid,))
-    u = c.fetchone()
-    with _user_cache_lock: _user_cache[uid] = (u, now)
+            if now - ts < 5:
+                return d
+
+    doc = users_col.find_one({"id": uid})
+
+    if not doc:
+        u = None
+    else:
+        u = (
+            doc.get("id"),
+            doc.get("username", ""),
+            doc.get("credits", 5),
+            doc.get("is_premium", 0),
+            doc.get("is_admin", 0),
+            doc.get("expiry_date", ""),
+            doc.get("proxies", ""),
+            doc.get("refer_code"),
+            doc.get("referred_by", 0),
+            doc.get("banned", 0),
+            doc.get("ref_credits", 0),
+            doc.get("join_date", ""),
+            doc.get("is_verified", 0)
+        )
+
+    with _user_cache_lock:
+        _user_cache[uid] = (u, now)
+
     return u
 
 def invalidate_cache(uid):
@@ -483,9 +528,11 @@ migrate_users_table()  # runs after init
 # SETTINGS / HELPERS
 # ==========================================
 def get_setting(key, default=10):
-    c = get_db().cursor(); c.execute("SELECT value FROM settings WHERE key=?", (key,))
-    row = c.fetchone()
-    return int(row[0]) if row and str(row[0]).isdigit() else (row[0] if row else default)
+    doc = settings_col.find_one({"_id": key})
+    if not doc:
+        return default
+    value = doc.get("value", default)
+    return int(value) if str(value).isdigit() else value
 
 def get_default_proxies():
     v = get_setting('default_proxies', '')
@@ -495,60 +542,139 @@ def get_default_proxies():
     return HARDCODED_PROXIES
 
 def get_user_by_username(u):
-    c = get_db().cursor()
-    c.execute("SELECT * FROM users WHERE LOWER(username)=LOWER(?)", (u.replace('@','').strip(),))
-    return c.fetchone()
+    username = u.replace("@", "").strip()
+    doc = users_col.find_one({
+        "username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}
+    })
 
+    if not doc:
+        return None
+
+    return (
+        doc.get("id"),
+        doc.get("username", ""),
+        doc.get("credits", 5),
+        doc.get("is_premium", 0),
+        doc.get("is_admin", 0),
+        doc.get("expiry_date", ""),
+        doc.get("proxies", ""),
+        doc.get("refer_code"),
+        doc.get("referred_by", 0),
+        doc.get("banned", 0),
+        doc.get("ref_credits", 0),
+        doc.get("join_date", ""),
+        doc.get("is_verified", 0)
+    )
 def create_user(uid, uname, ref_by=0):
-    c = get_db().cursor()
-    c.execute("SELECT * FROM users WHERE id=?", (uid,))
-    existing = c.fetchone()
-    ref_code = secrets.token_urlsafe(8)
+    uid = int(uid)
+    ref_by = int(ref_by or 0)
+
+    existing = users_col.find_one({"id": uid})
+
     jd = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+    ref_code = secrets.token_urlsafe(8)
+
     if existing:
-        if ref_by > 0 and ref_by != uid and existing[8] == 0:
-            c.execute("UPDATE users SET referred_by=? WHERE id=?", (ref_by, uid))
-            c.execute("INSERT INTO referrals (referrer_id, referred_id, date) VALUES (?, ?, ?)", (ref_by, uid, jd))
-            c.execute("UPDATE users SET ref_credits = ref_credits + 1 WHERE id=?", (ref_by,))
-            get_db().commit(); invalidate_cache(ref_by); invalidate_cache(uid)
-            try:
-                ref_u = get_user(ref_by); total = ref_u[10] if ref_u else 1
-                safe_send(OWNER_ID, f"🔔 <b>NEW REFERRAL!</b>\n{E_LINE}\n👤 <b>New:</b> @{uname or uid}\n🔗 <b>By:</b> @{(ref_u[1] if ref_u and ref_u[1] else ref_by)}\n🆔 <b>Ref ID:</b> <code>{ref_by}</code>\n📊 <b>Total:</b> {total}/5\n{E_LINE}", parse_mode='HTML')
-                send_referral_notification(ref_by, uname or uid, total)
-            except: pass
+        if ref_by > 0 and ref_by != uid and not existing.get("referred_by", 0):
+            referrer = users_col.find_one({"id": ref_by})
+
+            if referrer:
+                users_col.update_one(
+                    {"id": uid},
+                    {"$set": {"referred_by": ref_by}}
+                )
+                referrals_col.insert_one({
+                    "referrer_id": ref_by,
+                    "referred_id": uid,
+                    "date": jd
+                })
+                users_col.update_one(
+                    {"id": ref_by},
+                    {"$inc": {"ref_credits": 1}}
+                )
+                invalidate_cache(ref_by)
+
+        invalidate_cache(uid)
         return False
-    
-    c.execute("INSERT INTO users (id, username, credits, refer_code, referred_by, join_date, is_verified) VALUES (?, ?, 5, ?, ?, ?, 0)",
-              (uid, uname, ref_code, ref_by, jd))
-    if ref_by > 0:
-        c.execute("INSERT INTO referrals (referrer_id, referred_id, date) VALUES (?, ?, ?)", (ref_by, uid, jd))
-        c.execute("UPDATE users SET ref_credits = ref_credits + 1 WHERE id=?", (ref_by,))
-        get_db().commit(); invalidate_cache(ref_by)
+
+    user_data = {
+        "id": uid,
+        "username": uname or "",
+        "credits": 5,
+        "is_premium": 0,
+        "is_admin": 0,
+        "expiry_date": "",
+        "proxies": "",
+        "refer_code": ref_code,
+        "referred_by": 0,
+        "banned": 0,
+        "ref_credits": 0,
+        "join_date": jd,
+        "is_verified": 0
+    }
+
+    if ref_by > 0 and ref_by != uid:
+        referrer = users_col.find_one({"id": ref_by})
+        if referrer:
+            user_data["referred_by"] = ref_by
+
+    users_col.insert_one(user_data)
+    invalidate_cache(uid)
+
+    if user_data["referred_by"]:
+        referrals_col.insert_one({
+            "referrer_id": ref_by,
+            "referred_id": uid,
+            "date": jd
+        })
+        users_col.update_one(
+            {"id": ref_by},
+            {"$inc": {"ref_credits": 1}}
+        )
+        invalidate_cache(ref_by)
+
         try:
-            ref_u = get_user(ref_by); total = ref_u[10] if ref_u else 1
-            safe_send(OWNER_ID, f"🔔 <b>NEW REFERRAL!</b>\n{E_LINE}\n👤 <b>New:</b> @{uname or uid}\n🔗 <b>By:</b> @{(ref_u[1] if ref_u and ref_u[1] else ref_by)}\n🆔 <b>Ref ID:</b> <code>{ref_by}</code>\n📊 <b>Total:</b> {total}/5\n{E_LINE}", parse_mode='HTML')
+            ref_u = get_user(ref_by)
+            total = ref_u[10] if ref_u else 1
+            safe_send(
+                OWNER_ID,
+                f"🔔 NEW REFERRAL!\\nNew: @{uname or uid}\\nBy: {ref_by}\\nTotal: {total}"
+            )
             send_referral_notification(ref_by, uname or uid, total)
-        except: pass
-    get_db().commit(); invalidate_cache(uid)
+        except Exception as e:
+            print("REFERRAL ERROR:", e)
+
     return True
 
 def update_credits(uid, amt):
-    c = get_db().cursor(); c.execute("UPDATE users SET credits = credits + ? WHERE id=?", (amt, uid))
-    get_db().commit(); invalidate_cache(uid)
+    users_col.update_one(
+        {"id": int(uid)},
+        {"$inc": {"credits": int(amt)}}
+    )
+    invalidate_cache(int(uid))
 
 def update_status(uid, field, val):
-    c = get_db().cursor(); c.execute(f"UPDATE users SET {field}=? WHERE id=?", (val, uid))
-    get_db().commit(); invalidate_cache(uid)
+    allowed_fields = [
+        "username", "credits", "is_premium", "is_admin",
+        "expiry_date", "proxies", "refer_code", "referred_by",
+        "banned", "ref_credits", "join_date", "is_verified"
+    ]
+    if field not in allowed_fields:
+        return
+
+    users_col.update_one(
+        {"id": int(uid)},
+        {"$set": {field: val}}
+    )
+    invalidate_cache(int(uid))
 
 def get_gateways(t=None):
-    c = get_db().cursor()
-    c.execute("SELECT * FROM gateways WHERE type=?" if t else "SELECT * FROM gateways", (t,) if t else ())
-    return c.fetchall()
+    if t:
+        return list(gateways_col.find({"type": t}))
+    return list(gateways_col.find({}))
 
 def get_gateway(cmd):
-    c = get_db().cursor(); c.execute("SELECT * FROM gateways WHERE cmd=?", (cmd,)); return c.fetchone()
-
+    return gateways_col.find_one({"cmd": cmd})
 def is_admin(uid):
     if uid == OWNER_ID: return True
     u = get_user(uid); return bool(u and u[4] == 1)
@@ -1422,9 +1548,10 @@ def handle_cb(call):
         if not u: return safe_answer(call.id, "❌ Please /start first.", show_alert=True)
         if not u[7]:
             new_code = secrets.token_urlsafe(8)
-            c = get_db().cursor()
-            c.execute("UPDATE users SET refer_code=? WHERE id=?", (new_code, uid))
-            get_db().commit(); invalidate_cache(uid)
+            users_col.update_one(
+    {"id": int(uid)},
+    {"$set": {"refer_code": new_code}}
+)
             u = get_user(uid)
         try: bot_username = bot.get_me().username
         except: bot_username = "CvexChkBot"
@@ -1529,13 +1656,24 @@ def handle_cb(call):
     elif data.startswith("w_app_"):
         if not is_adm: return
         wid = int(data.split("_")[2])
-        c = get_db().cursor(); c.execute("SELECT user_id, amount FROM withdrawals WHERE id=?", (wid,)); row = c.fetchone()
-        if not row: return safe_answer(call.id, "❌ Not found", show_alert=True)
-        c.execute("UPDATE withdrawals SET status='APPROVED' WHERE id=?", (wid,))
-        c.execute("UPDATE users SET credits = credits + ? WHERE id=?", (row[1], row[0]))
-        get_db().commit(); invalidate_cache(row[0])
+row = withdrawals_col.find_one({"id": wid})
+
+if not row:
+    return safe_answer(call.id, "❌ Not found", show_alert=True)
+
+withdrawals_col.update_one(
+    {"id": wid},
+    {"$set": {"status": "APPROVED"}}
+)
+
+users_col.update_one(
+    {"id": int(row["user_id"])},
+    {"$inc": {"credits": int(row["amount"])}}
+)
+
+invalidate_cache(int(row["user_id"]))
         safe_answer(call.id, "✅ Approved")
-        send_withdraw_approved(row[0], row[1])
+        send_withdraw_approved(row["user_id"], row["amount"])
         safe_edit(call.message.chat.id, call.message.message_id, f"✅ Approved {row[1]}cr to <code>{row[0]}</code>", parse_mode='HTML')
     elif data.startswith("w_dec_"):
         if not is_adm: return
