@@ -1671,7 +1671,7 @@ users_col.update_one(
     {"$inc": {"credits": int(row["amount"])}}
 )
 
-invalidate_cache(int(row["user_id"]))
+        invalidate_cache(int(row["user_id"]))
         safe_answer(call.id, "✅ Approved")
         send_withdraw_approved(row["user_id"], row["amount"])
         safe_edit(call.message.chat.id, call.message.message_id, f"✅ Approved {row[1]}cr to <code>{row[0]}</code>", parse_mode='HTML')
