@@ -1656,20 +1656,20 @@ def handle_cb(call):
     elif data.startswith("w_app_"):
         if not is_adm: return
         wid = int(data.split("_")[2])
-row = withdrawals_col.find_one({"id": wid})
+        row = withdrawals_col.find_one({"id": wid})
 
-if not row:
-    return safe_answer(call.id, "❌ Not found", show_alert=True)
+        if not row:
+            return safe_answer(call.id, "❌ Not found", show_alert=True)
 
-withdrawals_col.update_one(
-    {"id": wid},
-    {"$set": {"status": "APPROVED"}}
-)
+       withdrawals_col.update_one(
+          {"id": wid},
+          {"$set": {"status": "APPROVED"}}
+       )
 
-users_col.update_one(
-    {"id": int(row["user_id"])},
-    {"$inc": {"credits": int(row["amount"])}}
-)
+       users_col.update_one(
+           {"id": int(row["user_id"])},
+           {"$inc": {"credits": int(row["amount"])}}
+       )
 
         invalidate_cache(int(row["user_id"]))
         safe_answer(call.id, "✅ Approved")
